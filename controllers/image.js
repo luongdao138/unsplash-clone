@@ -1,12 +1,25 @@
 const Image = require('../models/Image');
+const convertToBase64 = require('../helpers/convertToBase64');
+const cloudinary = require('../helpers/upload');
 
 module.exports = {
   addImage: async (req, res) => {
     const { label, url } = req.body;
+    const file = req.file;
+    console.log(file);
+    let file_url;
+    let public_id;
+    if (file) {
+      const { content } = convertToBase64(file);
+      const result = await cloudinary.upload(content);
+      file_url = result.secure_url;
+      public_id = result.public_id;
+    }
 
     let newImage = new Image({
       label,
-      url,
+      url: file ? file_url : url,
+      public_id: file ? public_id : '',
     });
 
     try {
@@ -49,7 +62,13 @@ module.exports = {
     const { id } = req.params;
 
     try {
-      await Image.findByIdAndDelete(id);
+      const image = await Image.findById(id);
+      await Image.findOneAndDelete(id);
+
+      if (image.public_id && image.public_id !== '') {
+        await cloudinary.destroy(image.public_id);
+      }
+
       return res.json({
         message: 'Delete successfully!',
       });

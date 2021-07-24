@@ -10,6 +10,7 @@ const imageSchema = new Schema(
       type: String,
       required: true,
     },
+    public_id: String,
   },
   {
     timestamps: true,
